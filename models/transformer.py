@@ -116,7 +116,7 @@ class TransformerEncoder(nn.Module):
         
         for layer in self.layers:
             if self.args is not None and self.args.use_mamba_enc:
-                output = layer(output) 
+                output = layer(output) + output
             else:
                 output = layer(output, src_mask=mask,
                            src_key_padding_mask=src_key_padding_mask, pos=pos)
@@ -124,7 +124,9 @@ class TransformerEncoder(nn.Module):
         if self.norm is not None:
             output = self.norm(output)
 
-        return output + src
+        # if self.args is not None and self.args.use_mamba_enc:
+        #     return output + src
+        return output 
 
 
 class TransformerDecoder(nn.Module):
@@ -150,7 +152,7 @@ class TransformerDecoder(nn.Module):
 
         for layer in self.layers:
             if self.args is not None and self.args.use_mamba_dec:
-                output = layer(output, memory)
+                output = layer(output, memory) + output
             else:
                 output = layer(output, memory, tgt_mask=tgt_mask,
                            memory_mask=memory_mask,
@@ -168,7 +170,9 @@ class TransformerDecoder(nn.Module):
 
         if self.return_intermediate:
             return torch.stack(intermediate)
-        return output.unsqueeze(0) + tgt
+        # if self.args is not None and self.args.use_mamba_dec:
+        #     return output.unsqueeze(0) + tgt
+        return output.unsqueeze(0) 
 
 
 class TransformerEncoderLayer(nn.Module):
