@@ -371,10 +371,10 @@ class VSSBlock(nn.Module):
         self.self_attention = SS2D(d_model=hidden_dim, d_state=d_state,expand=expand,dropout=attn_drop_rate, is_cross=is_cross, args=args, **kwargs)
         self.drop_path = DropPath(drop_path)
         self.skip_scale= nn.Parameter(torch.ones(hidden_dim))
-        self.conv_blk = CAB(hidden_dim,is_light_sr)
-        self.ln_2 = nn.LayerNorm(hidden_dim)
-        self.skip_scale2 = nn.Parameter(torch.ones(hidden_dim))
-        # self.norm = nn.LayerNorm(hidden_dim)
+        # self.conv_blk = CAB(hidden_dim,is_light_sr)
+        # self.ln_2 = nn.LayerNorm(hidden_dim)
+        # self.skip_scale2 = nn.Parameter(torch.ones(hidden_dim))
+        self.norm = nn.LayerNorm(hidden_dim)
 
 
     def forward(self, input, style=None):
@@ -395,10 +395,10 @@ class VSSBlock(nn.Module):
             
         x = self.ln_1(input)
         x = input*self.skip_scale + self.drop_path(self.self_attention(x, style=style))
-        x = x*self.skip_scale2 + self.conv_blk(self.ln_2(x).permute(0, 3, 1, 2).contiguous()).permute(0, 2, 3, 1).contiguous()
+        # x = x*self.skip_scale2 + self.conv_blk(self.ln_2(x).permute(0, 3, 1, 2).contiguous()).permute(0, 2, 3, 1).contiguous()
         x = x.view(B, -1, C).contiguous()
         # norm here used if there's no channel attention
-        # x = self.norm(x)
+        x = self.norm(x)
         x = rearrange(x, 'b l d -> l b d')
         return x
 
