@@ -229,7 +229,6 @@ class StyTrans(nn.Module):
         ### Linear projection
         style = self.embedding(samples_s.tensors)
         content = self.embedding(samples_c.tensors)
-        
         # postional embedding is calculated in transformer.py
         pos_s = None
         pos_c = None
