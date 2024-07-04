@@ -84,12 +84,10 @@ class Transformer(nn.Module):
         if pos_embed_c is not None:
             pos_embed_c = pos_embed_c.flatten(2).permute(2, 0, 1)
      
-        
         style = self.encoder_s(style, src_key_padding_mask=mask, pos=pos_embed_s)
         content = self.encoder_c(content, src_key_padding_mask=mask, pos=pos_embed_c)
         hs = self.decoder(content, style, memory_key_padding_mask=mask,
                           pos=pos_embed_s, query_pos=pos_embed_c)[0]
-        
         
         ### HWxNxC to NxCxHxW to
         N, B, C= hs.shape          
@@ -108,15 +106,21 @@ class TransformerEncoder(nn.Module):
         self.num_layers = num_layers
         self.norm = norm
 
+    def with_pos_embed(self, tensor, pos: Optional[Tensor]):
+        return tensor if pos is None else tensor + pos
+    
     def forward(self, src,
                 mask: Optional[Tensor] = None,
                 src_key_padding_mask: Optional[Tensor] = None,
                 pos: Optional[Tensor] = None):
         output = src
         
-        for layer in self.layers:
+        for index, layer in enumerate(self.layers):
             if self.args is not None and self.args.use_mamba_enc:
-                output = layer(output) + output
+                if self.args.use_pos_embed:
+                    output = layer(self.with_pos_embed(output, pos)) + output
+                else:
+                    output = layer(output) + output
             else:
                 output = layer(output, src_mask=mask,
                            src_key_padding_mask=src_key_padding_mask, pos=pos)
@@ -139,6 +143,9 @@ class TransformerDecoder(nn.Module):
         self.norm = norm
         self.return_intermediate = return_intermediate
 
+    def with_pos_embed(self, tensor, pos: Optional[Tensor]):
+        return tensor if pos is None else tensor + pos
+    
     def forward(self, tgt, memory,
                 tgt_mask: Optional[Tensor] = None,
                 memory_mask: Optional[Tensor] = None,
@@ -150,9 +157,12 @@ class TransformerDecoder(nn.Module):
 
         intermediate = []
 
-        for layer in self.layers:
+        for index, layer in enumerate(self.layers):
             if self.args is not None and self.args.use_mamba_dec:
-                output = layer(output, memory) + output
+                if self.args.use_pos_embed:
+                    output = layer(self.with_pos_embed(output, pos), self.with_pos_embed(memory, query_pos)) + output
+                else:
+                    output = layer(output,memory) + output
             else:
                 output = layer(output, memory, tgt_mask=tgt_mask,
                            memory_mask=memory_mask,

@@ -10,7 +10,7 @@ def load_pretrained(args, sota=False):
 
     if sota:
         decoder = StyTR.decoder_sota
-        Trans = transformer.Transformer(args=None)
+        Trans = transformer.Transformer(args=None, num_decoder_layers=3, num_encoder_layers=3, dim_feedforward=2048)
         decoder_path = args.decoder_sota_path
         trans_path = args.Trans_sota_path
         embedding_path = args.embedding_sota_path

@@ -234,7 +234,7 @@ class StyTrans(nn.Module):
         pos_c = None
 
         mask = None
-        hs = self.transformer(style, mask , content, pos_c, pos_s)   
+        hs = self.transformer(style, mask , content, pos_c, pos_s)  
         Ics = self.decode(hs)
         
 

@@ -20,8 +20,9 @@ import os
 import random
 from tqdm import tqdm
 from util.utils import load_pretrained
+import shutil
 
-def select_random_images(root_dir, num_images):
+def select_random_images(root_dir, num_images, save_dir=None):
     images = []
     for dirpath, _, filenames in os.walk(root_dir):
         for filename in filenames:
@@ -32,7 +33,17 @@ def select_random_images(root_dir, num_images):
         print("Warning: Number of images in folder is less than required.")
 
     selected_images = random.sample(images, min(num_images, len(images)))
+    
+    if save_dir is not None:
+        # Ensure the destination directory exists
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+
+        # Copy selected images to the destination directory
+        for image in selected_images:
+            shutil.copy(image, save_dir)
     return selected_images
+
 
 def test_transform(size, crop):
     transform_list = []
@@ -94,7 +105,6 @@ def eval(args):
     num_images_to_select = 20
     content_paths = select_random_images(args.content_dir, num_images_to_select)
 
-        
     if not os.path.exists(output_path):
         os.mkdir(output_path)
 
@@ -112,6 +122,8 @@ def eval(args):
     style_loss = 0.0
     content_loss_sota = 0.0
     style_loss_sota = 0.0
+        
+        
     for content_path in tqdm(content_paths):
         for style_path in tqdm(style_paths):
             content = content_tf(Image.open(content_path).convert("RGB"))
@@ -124,6 +136,7 @@ def eval(args):
             content = content.to(device).unsqueeze(0)
             with torch.no_grad():
                 output, loss_c, loss_s, _, _, _, _ = network(content,style) 
+                result = output
                 output_sota, loss_c_sota, loss_s_sota, _, _, _, _ = network_sota(content, style)     
         
             content_loss += loss_c
@@ -137,8 +150,8 @@ def eval(args):
             )
             output = torch.cat((content.cpu(),style.cpu(),output.cpu(), output_sota.cpu()), 0)
             
-            if args.output != "":
-                save_image(output, output_name)
+            # if args.output != "":
+            #     save_image(result, output_name)
     print("Image size: ", args.img_size)
     print("Standard")
     print(f"Content loss total: {content_loss_sota.item()} - Style loss total: {style_loss_sota.item()}")

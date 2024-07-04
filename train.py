@@ -198,13 +198,14 @@ def train(args):
     with tqdm(range(args.resume_iter, args.max_iter)) as titer:
         for i in titer:
             titer.set_description(f"Iter {i}")
-            # if i < 1e4:
-            #     warmup_learning_rate(args, optimizer, iteration_count=i)
-            # else:
-            #     adjust_learning_rate(args, optimizer, iteration_count=i)
-            # if i > 50000:
-            #     for param_group in optimizer.param_groups:
-            #         param_group['lr'] = 1e-5
+            if not args.use_mamba_dec:
+                if i < 1e4:
+                    warmup_learning_rate(args, optimizer, iteration_count=i)
+                else:
+                    adjust_learning_rate(args, optimizer, iteration_count=i)
+                if i > 50000:
+                    for param_group in optimizer.param_groups:
+                        param_group['lr'] = 1e-5
             # print('learning_rate: %s' % str(optimizer.param_groups[0]['lr']))
             content_images = next(content_iter).to(device)
             style_images = next(style_iter).to(device)  

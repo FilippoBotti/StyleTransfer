@@ -1,4 +1,3 @@
-# Code Implementation of the MambaIR Model
 import math
 import torch
 import torch.nn as nn
@@ -282,7 +281,7 @@ class SS2D(nn.Module):
         
         if style is not None:
             style = torch.stack([style.view(B, -1, L), torch.transpose(style, dim0=2, dim1=3).contiguous().view(B, -1, L)], dim=1).view(B, 2, -1, L)
-            style = torch.cat([style, style], dim=1) # (1, 4, 192, 3136)
+            style = torch.cat([style, torch.flip(style, dims=[-1])], dim=1) # (1, 4, 192, 3136)
             s_dbl = torch.einsum("b k d l, k c d -> b k c l", style.view(B, K, -1, L), self.style_proj_weight)
             
             if self.args != None and self.args.c_style:
@@ -303,7 +302,19 @@ class SS2D(nn.Module):
         Ds = self.Ds.float().view(-1)
         As = -torch.exp(self.A_logs.float()).view(-1, self.d_state)
         dt_projs_bias = self.dt_projs_bias.float().view(-1) # (k * d)
-        out_y = self.selective_scan(
+        
+        if style is not None:
+            style = style.float().view(B, -1, L)
+            
+            out_y = self.selective_scan(
+            style, dts,
+            As, Bs, Cs, Ds, z=None,
+            delta_bias=dt_projs_bias,
+            delta_softplus=True,
+            return_last_state=False,
+        ).view(B, K, -1, L)
+        else:
+            out_y = self.selective_scan(
             xs, dts,
             As, Bs, Cs, Ds, z=None,
             delta_bias=dt_projs_bias,
@@ -373,7 +384,7 @@ class VSSBlock(nn.Module):
         self.skip_scale= nn.Parameter(torch.ones(hidden_dim))
         # self.conv_blk = CAB(hidden_dim,is_light_sr)
         # self.ln_2 = nn.LayerNorm(hidden_dim)
-        # self.skip_scale2 = nn.Parameter(torch.ones(hidden_dim))
+        self.skip_scale2 = nn.Parameter(torch.ones(hidden_dim))
         self.norm = nn.LayerNorm(hidden_dim)
 
 
